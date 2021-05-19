@@ -19,15 +19,6 @@ namespace Assets
         User, Bot
     }
 
-    public class StartDialog : Dialog
-    {
-        [Expression("Hello Bot")]
-        public void Hello(Context context, Result result)
-        {
-            result.SendResponse("Hello User!");
-        }
-    }
-
     public class GameManager : MonoBehaviour
     {
         OscovaBot MainBot;
@@ -39,38 +30,13 @@ namespace Assets
 
         List<Message> Messages = new List<Message>();
 
+        private ChatbotPC bot;
+
         // Start is called before the first frame update
         void Start()
         {
-            try
-            {
-                //Create new instance of bot.
-                MainBot = new OscovaBot();
-                OscovaBot.Logger.LogReceived += (s, o) =>
-                {
-                    Debug.Log($"OscovaBot: {o.Log}");
-                };
-
-                //Train on simple dialog.
-                MainBot.Dialogs.Add(new StartDialog());
-
-                //Import bot's knowledge-base from a Workspace project file.
-                //To read the content of this file ensure you've got Oryzer installed. Visit Oryzer.com
-
-                //UNCHECK THE LINE BELOW TO IMPORT A PIZZA BOT DEMO.
-                //MainBot.ImportWorkspace("Assets/pizza-bot.west");
-                MainBot.Trainer.StartTraining();
-
-                //When the bot generates a response simply display it.
-                MainBot.MainUser.ResponseReceived += (sender, evt) =>
-                {
-                    AddMessage($"Bot: {evt.Response.Text}", MessageType.Bot);
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError(ex);
-            }
+            bot = new ChatbotPC();
+            bot.LoadBrain();
         }
 
         public void AddMessage(string messageText, MessageType messageType)
@@ -99,17 +65,13 @@ namespace Assets
 
             if (!string.IsNullOrEmpty(userMessage))
             {
-                Debug.Log($"OscovaBot:[USER] {userMessage}");
+                Debug.Log($"aimlBot:[USER] {userMessage}");
                 AddMessage($"User: {userMessage}", MessageType.User);
 
-                //Create a request for bot to process.
-                var request = MainBot.MainUser.CreateRequest(userMessage);
+                var botMessage = bot.getOutput(userMessage);
 
-                //Evaluate the request (Compute NLU - Natural Language Understanding)
-                var evaluationResult = MainBot.Evaluate(request);
-
-                //Invoke the best suggested intent found. This is compel a response generation.
-                evaluationResult.Invoke();
+                Debug.Log($"aimlBot:[BOT] {botMessage}");
+                AddMessage($"Bot: {botMessage}", MessageType.Bot);
 
                 chatBox.Select();
                 chatBox.text = "";
@@ -124,6 +86,11 @@ namespace Assets
                 //Process user message on enter press.
                 SendMessageToBot();
             }
+        }
+
+        void OnDisable()
+        {
+            bot.SaveBrain();
         }
     }
 }
